@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>근무 스케줄 &amp; 급여 계산</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --surface-page:   #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1: #2a78d6; /* 매니저 */
+    --series-2: #eb6834; /* 부매니저 */
+    --series-3: #1baf7a; /* 하이스태프 */
+    --series-4: #eda100; /* 일반스태프/알바 */
+    --good: #0ca30c;
+    --critical: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --surface-page:   #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --series-4: #c98500;
+      --good: #0ca30c;
+      --critical: #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --surface-page:   #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --good: #0ca30c;
+    --critical: #e66767;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--surface-page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+  }
+  .app { max-width: 1180px; margin: 0 auto; padding: 20px 20px 60px; }
+
+  header.top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+  }
+  header.top h1 { font-size: 19px; margin: 0; font-weight: 700; }
+  header.top .sub { color: var(--text-secondary); font-size: 12.5px; margin-top: 2px; }
+  .top-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  select.event-select {
+    background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; font-size: 13px; font-family: inherit;
+    max-width: 100%;
+  }
+
+  button {
+    font-family: inherit; font-size: 12.5px; cursor: pointer;
+    border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-1); color: var(--text-primary);
+    padding: 7px 12px; transition: background .1s;
+  }
+  button:hover { background: var(--gridline); }
+  button.primary {
+    background: var(--series-1); color: #fff; border-color: var(--series-1);
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  button.danger-text { color: var(--critical); }
+  button.icon-btn { padding: 6px 9px; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+
+  .tabs {
+    display: flex; gap: 4px; border-bottom: 1px solid var(--gridline);
+    margin-bottom: 18px; flex-wrap: wrap;
+  }
+  .tab-btn {
+    border: none; background: transparent; border-radius: 8px 8px 0 0;
+    padding: 9px 14px; color: var(--text-secondary); font-weight: 600;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn:hover { background: var(--gridline); color: var(--text-primary); }
+  .tab-btn.active { color: var(--series-1); border-bottom: 2px solid var(--series-1); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Extra breathing room on narrow screens: everything above already wraps (flex-wrap),
+     this just shrinks paddings/fonts so wrapped rows don't themselves overflow. */
+  @media (max-width: 480px) {
+    .app { padding: 14px 12px 40px; }
+    header.top h1 { font-size: 16.5px; }
+    .top-actions button, select.event-select { font-size: 12px; padding: 6px 9px; }
+    .tab-btn { font-size: 12px; padding: 7px 9px; }
+  }
+
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 14.5px; margin: 0 0 4px; }
+  .card .hint { color: var(--text-muted); font-size: 12px; margin: 0 0 12px; line-height: 1.5; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  label.field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 10px; }
+  label.field input, label.field select {
+    font-family: inherit; font-size: 13px; padding: 7px 9px;
+    border-radius: 7px; border: 1px solid var(--border);
+    background: var(--surface-page); color: var(--text-primary);
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.data th, table.data td {
+    border-bottom: 1px solid var(--gridline);
+    padding: 7px 8px; text-align: left; white-space: nowrap;
+  }
+  table.data th { color: var(--text-muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .02em; }
+  table.data td input, table.data td select {
+    font-family: inherit; font-size: 12.5px; padding: 5px 6px; width: 100%; min-width: 68px;
+    border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface-page); color: var(--text-primary);
+  }
+  #rolesTable td input[data-field="name"] { min-width: 92px; }
+  table.data tr:hover td { background: var(--surface-page); }
+  .num { font-variant-numeric: tabular-nums; text-align: right !important; }
+
+  /* Wide tables scroll within their own box rather than squeezing input text unreadably or
+     pushing the whole page sideways. Scrollbars are kept visible (not auto-hidden) so a narrow
+     screen doesn't look like content is simply missing. */
+  .table-scroll {
+    overflow-x: auto; border-radius: 8px;
+    scrollbar-width: thin; scrollbar-color: var(--baseline) transparent;
+  }
+  .table-scroll::-webkit-scrollbar { height: 8px; }
+  .table-scroll::-webkit-scrollbar-thumb { background: var(--baseline); border-radius: 4px; }
+  .table-scroll::-webkit-scrollbar-track { background: transparent; }
+  .scroll-hint {
+    display: none; color: var(--text-muted); font-size: 11px; margin: -4px 0 8px;
+  }
+  @media (max-width: 720px) {
+    .scroll-hint { display: block; }
+  }
+
+  .role-swatch { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:middle; }
+
+  .att-grid-wrap {
+    overflow-x: auto;
+    scrollbar-width: thin; scrollbar-color: var(--baseline) transparent;
+  }
+  .att-grid-wrap::-webkit-scrollbar { height: 8px; }
+  .att-grid-wrap::-webkit-scrollbar-thumb { background: var(--baseline); border-radius: 4px; }
+  .att-grid-wrap::-webkit-scrollbar-track { background: transparent; }
+  table.att th, table.att td { text-align: center; padding: 5px 6px; }
+  table.att th.name-col, table.att td.name-col { text-align: left; position: sticky; left: 0; background: var(--surface-1); z-index: 2; min-width: 96px; }
+  table.att th.dow-r { color: var(--critical); }
+  table.att .cell-btn {
+    width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface-page); color: var(--text-muted); font-weight: 700; padding: 0;
+    user-select: none;
+  }
+  table.att .cell-btn.on { background: var(--series-1); color: #fff; border-color: var(--series-1); }
+  table.att .date-type-toggle { font-size: 10.5px; padding: 2px 5px; border-radius: 5px; }
+  table.att .holiday-mark { color: var(--critical); font-weight: 700; }
+  table.att.att-painting { cursor: pointer; }
+  table.att.att-painting, table.att.att-painting * { user-select: none; }
+  table.att .col-toggle-btn {
+    margin-top: 2px; font-size: 10px; padding: 1px 6px; border-radius: 5px;
+    background: var(--surface-page); color: var(--text-muted); border: 1px solid var(--border);
+  }
+  table.att .col-toggle-btn:hover { background: var(--series-1); color: #fff; border-color: var(--series-1); }
+  table.att .row-toggle-btn {
+    font-size: 10px; padding: 1px 6px; border-radius: 5px; margin-left: 4px;
+    background: var(--surface-page); color: var(--text-muted); border: 1px solid var(--border);
+  }
+  table.att .row-toggle-btn:hover { background: var(--series-1); color: #fff; border-color: var(--series-1); }
+
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 820px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat-tile {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .stat-tile .label { color: var(--text-muted); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
+  .stat-tile .value { font-size: 22px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat-tile .value.small { font-size: 18px; }
+
+  .chart-wrap { padding: 4px 4px 0; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .bar-row .bar-label { width: 90px; flex-shrink: 0; font-size: 12.5px; font-weight: 600; text-align: right; }
+  .bar-track { flex: 1; background: var(--surface-page); border-radius: 6px; height: 22px; position: relative; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; }
+  .bar-row .bar-value { width: 110px; flex-shrink: 0; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  .bar-fill[data-tip] { cursor: default; }
+
+  .legend-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
+  .legend-item { display: flex; align-items: center; }
+
+  .empty-note {
+    color: var(--text-muted); font-size: 12.5px; padding: 20px; text-align: center;
+    border: 1px dashed var(--gridline); border-radius: 10px;
+  }
+
+  .footer-note { color: var(--text-muted); font-size: 11.5px; margin-top: 24px; line-height: 1.6; }
+  .row-actions { display:flex; gap:6px; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items:center; }
+  .toolbar .spacer { flex: 1; }
+  input[type=file] { display: none; }
+  .assumption-box {
+    background: var(--surface-page); border: 1px solid var(--border); border-left: 3px solid var(--series-1);
+    border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.6;
+  }
+
+  /* Header row (title + action button) reused for the ④ 연장근무 상세 tab's per-staff card */
+  .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .modal-header h2 { font-size: 15px; margin: 0; }
+
+  /* 이름을 눌러 여는 개별 급여 조회 카드 (⑤ 급여 결과 탭) */
+  .link-btn {
+    background: none; border: none; padding: 0; color: var(--series-1);
+    font-weight: 600; font-size: inherit; text-decoration: underline; cursor: pointer;
+  }
+  .link-btn:hover { filter: brightness(1.15); background: none; }
+
+  .lookup-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(11,11,11,0.45);
+    align-items: center; justify-content: center; z-index: 100; padding: 20px;
+  }
+  .lookup-overlay.open { display: flex; }
+  .lookup-card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; max-width: 440px; width: 100%; max-height: 90vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+  }
+  .lookup-title-bar {
+    background: var(--series-1); color: #fff; font-weight: 700; font-size: 15px;
+    padding: 12px 18px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .lookup-title-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .lookup-title-bar button {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: #fff;
+    padding: 3px 9px; font-size: 12px;
+  }
+  .lookup-title-bar button:hover { background: rgba(255,255,255,0.28); }
+  .lookup-title-bar button:disabled { opacity: 0.55; cursor: default; }
+  .lookup-body { padding: 14px 18px 18px; overflow-y: auto; }
+  .lookup-name-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+    background: var(--surface-page); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px;
+  }
+  .lookup-name-row .lk-name { font-weight: 700; font-size: 14.5px; }
+  .lookup-name-row .lk-role {
+    margin-left: auto; color: var(--text-secondary); font-size: 12.5px;
+    background: var(--gridline); border-radius: 6px; padding: 3px 9px;
+  }
+  .lookup-section-title {
+    font-size: 12.5px; font-weight: 700; color: var(--text-secondary);
+    margin: 14px 0 6px;
+  }
+  table.lookup { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.lookup th, table.lookup td {
+    border-bottom: 1px solid var(--gridline); padding: 7px 8px; text-align: left;
+  }
+  table.lookup th { color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+  table.lookup td.num, table.lookup th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.lookup tr.lookup-total-row td { background: var(--surface-page); font-weight: 700; }
+  .lookup-final {
+    margin-top: 14px; display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface-page); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; font-weight: 700; font-size: 15px;
+  }
+  .lookup-final .lk-final-label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+</style>
+</head>
+<body class="viz-root">
+<div class="app">
+  <header class="top">
+    <div>
+      <h1>근무 스케줄 &amp; 급여 계산</h1>
+      <div class="sub" id="eventSubtitle">프로젝트를 선택하거나 새로 만들어보세요.</div>
+    </div>
+    <div class="top-actions">
+      <select class="event-select" id="eventSelect"></select>
+      <button id="addEventBtn">+ 새 프로젝트</button>
+      <button id="dupEventBtn">복제</button>
+      <button id="delEventBtn" class="danger-text">삭제</button>
+      <button id="themeToggle" class="icon-btn" title="라이트/다크 전환">🌓</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="setup">① 직급별 급여기준</button>
+    <button class="tab-btn" data-tab="dates">② 근무일 설정</button>
+    <button class="tab-btn" data-tab="staff">③ 인원 &amp; 근태</button>
+    <button class="tab-btn" data-tab="otdetail">④ 연장·단축근무 상세</button>
+    <button class="tab-btn" data-tab="result">⑤ 급여 결과</button>
+    <button class="tab-btn" data-tab="data">⑥ 데이터 저장/불러오기</button>
+  </nav>
+
+  <!-- TAB 1: rate setup -->
+  <section class="panel active" id="panel-setup">
+    <div class="card">
+      <h2>프로젝트 정보</h2>
+      <p class="hint">프로젝트(팝업/행사) 이름을 정하고, 아래에서 직급별 지급 기준을 설정하세요.</p>
+      <div class="grid-2">
+        <label class="field">프로젝트 이름
+          <input type="text" id="eventName" placeholder="예: 26.08 도서전">
+        </label>
+        <label class="field">메모
+          <input type="text" id="eventMemo" placeholder="선택 입력">
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>직급별 급여 기준</h2>
+      <p class="hint">
+        <strong>행사일(주말) 일급</strong>은 정식 행사 진행일에 지급하는 일당이고,
+        <strong>사전준비일(평일) 시급 × 기준시간</strong>은 오픈 전 준비/철수처럼 시간제로 계산하는 날의 지급액입니다.
+        <strong>행사일 기준시간</strong>은 행사일 일급이 몇 시간 근무를 기준으로 하는지를 나타내며, ④탭에서 단축근무(중도 퇴근)를 입력할 때 일급을 시간 비례로 나누는 데 쓰입니다.
+        <strong>공휴일 수당</strong>은 공휴일로 표시된 날 근무 시 추가로 지급되는 금액이고,
+        <strong>연장 시급</strong>은 인원별로 입력하는 연장근무시간에 곱해집니다.
+      </p>
+      <p class="scroll-hint">← 표가 넓으면 좌우로 스크롤해서 나머지 항목을 볼 수 있어요.</p>
+      <div class="table-scroll">
+        <table class="data" id="rolesTable">
+          <thead><tr>
+            <th></th><th>직급명</th><th>행사일 일급(원)</th><th>행사일 기준시간(h)</th><th>사전준비 시급(원)</th>
+            <th>기준시간(h)</th><th>공휴일 수당(원)</th><th>연장 시급(원)</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <button id="addRoleBtn" style="margin-top:10px;">+ 직급 추가</button>
+    </div>
+  </section>
+
+  <!-- TAB 2: date setup -->
+  <section class="panel" id="panel-dates">
+    <div class="card">
+      <h2>근무일 추가</h2>
+      <p class="hint">기간을 지정해 한 번에 날짜를 추가한 뒤, 각 날짜의 유형(행사일/사전준비일/행사철수일/물류입고일)과 공휴일 여부를 표에서 조정하세요. 행사철수일·물류입고일은 사전준비일과 동일한 기준(사전준비 시급 × 기준시간)으로 급여가 계산됩니다.</p>
+      <div class="grid-2">
+        <label class="field">시작일 <input type="date" id="rangeStart"></label>
+        <label class="field">종료일 <input type="date" id="rangeEnd"></label>
+      </div>
+      <div class="toolbar">
+        <label class="field" style="margin:0;">기본 유형
+          <select id="rangeDefaultType">
+            <option value="event">행사일(주말 기준)</option>
+            <option value="prep">사전준비일(평일 기준)</option>
+            <option value="teardown">행사철수일(사전준비일과 동일 기준)</option>
+            <option value="logistics">물류입고일(사전준비일과 동일 기준)</option>
+          </select>
+        </label>
+        <button class="primary" id="addRangeBtn">기간 내 날짜 추가</button>
+        <span class="spacer"></span>
+        <button class="danger-text" id="clearDatesBtn">전체 날짜 삭제</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>날짜 목록</h2>
+      <div class="table-scroll">
+        <table class="data" id="datesTable">
+          <thead><tr><th>날짜</th><th>요일</th><th>유형</th><th>공휴일</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: staff & attendance -->
+  <section class="panel" id="panel-staff">
+    <div class="card">
+      <h2>인원 추가</h2>
+      <div class="grid-2">
+        <label class="field">이름 <input type="text" id="newStaffName" placeholder="이름 입력"></label>
+        <label class="field">직급
+          <select id="newStaffRole"></select>
+        </label>
+      </div>
+      <button class="primary" id="addStaffBtn">+ 인원 추가</button>
+    </div>
+    <div class="card">
+      <h2>근태 체크 &amp; 연장근무</h2>
+      <p class="hint">이름을 눌러 날짜별 근무 여부를 표시하세요. 날짜 칸을 누르면 출근/결근이 토글됩니다. 오른쪽의 &quot;연장(h)&quot; 칸들은 프로젝트가 걸친 달마다 하나씩 있으니, 해당 월의 연장근무 시간을 직접 입력하거나, 맨 오른쪽 버튼으로 &quot;④ 연장·단축근무 상세&quot; 탭에서 근무일마다 연장시간과 단축근무(중도 퇴근) 실근무시간을 따로 입력하면 자동으로 반영됩니다. &quot;추가 지급(원)&quot;은 시급·일급 계산과 무관하게 이 달에 특정 인원에게 별도로 더 지급할 금액을 그대로 원 단위로 입력하는 칸입니다 (예: 류희정에게 14,000원을 추가로 줘야 한다면 해당 월 칸에 14000 입력).</p>
+      <p class="scroll-hint">← 표가 넓으면 좌우로 스크롤해서 나머지 날짜를 볼 수 있어요.</p>
+      <div class="att-grid-wrap">
+        <table class="att" id="attTable"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 4: per-date overtime detail (its own tab, next to ③ 인원 & 근태) -->
+  <section class="panel" id="panel-otdetail">
+    <div class="card">
+      <h2>인원별 연장근무 · 단축근무 상세 입력</h2>
+      <p class="hint">인원을 선택하고 근무일마다 값을 입력하세요. &quot;연장(h)&quot;에 값을 입력하면 ③탭의 해당 월 &quot;연장(h)&quot;에 자동으로 합산되어 채워지고, 그 항목은 잠깁니다.
+        &quot;단축근무 부족(h)&quot;는 그날 기준시간을 다 채우지 못하고 일찍 마친 단축근무일 때, 기준시간보다 부족한 시간을 <strong>음수</strong>로 입력하는 칸입니다 (예: 기준시간 8h인 날 5시간만 근무했다면 -3.0을 입력). 입력하면 그날 급여가 기준시간이 아닌 &quot;기준시간 + 입력값(음수)&quot;만큼만 비례로 계산됩니다 (예: 행사일 기준시간 8.5h에 일급 120,000원인 날 -7.5를 입력하면 실제 근무한 1시간(8.5-7.5)만큼만 비례 지급). 비워두면(또는 0을 입력하면) 평소처럼 기준시간을 다 채운 것으로 계산됩니다.
+        아래 &quot;월별 추가 지급(원)&quot;은 시급·일급 계산과 무관하게 이 인원에게 별도로 더 지급할 금액을 원 단위로 입력하는 칸으로, ③탭의 같은 항목과 그대로 연동됩니다.
+        (직접 다시 편집하려면 아래 &quot;상세입력 초기화&quot;를 사용하세요.)</p>
+      <label class="field" style="max-width:280px;">인원 선택
+        <select id="otDetailStaffSelect"></select>
+      </label>
+    </div>
+    <div class="card" id="otDetailEmpty" style="display:none;">
+      <div class="empty-note">먼저 ③탭에서 인원을 추가하세요.</div>
+    </div>
+    <div class="card" id="otDetailCard" style="display:none;">
+      <div class="modal-header" style="margin-bottom:8px;">
+        <h2 id="otDetailTitle" style="margin:0;"></h2>
+        <button class="danger-text" id="otDetailResetBtn">상세입력 초기화</button>
+      </div>
+      <div id="otDetailExtraPayWrap" style="margin-bottom:14px;"></div>
+      <div class="table-scroll">
+        <table class="data" id="otDetailTable"></table>
+      </div>
+      <div id="otDetailSummary" style="margin-top:10px; color:var(--text-secondary); font-size:12.5px;"></div>
+    </div>
+  </section>
+
+  <!-- TAB 5: results -->
+  <section class="panel" id="panel-result">
+    <div id="resultContent"></div>
+  </section>
+
+  <!-- TAB 6: data management -->
+  <section class="panel" id="panel-data">
+    <div class="card">
+      <h2>빈 양식으로 새로 시작하기</h2>
+      <p class="hint">
+        아래 양식을 내려받아 직급별 급여기준·근무일·인원 명단을 채운 뒤, 같은 파일을 그대로
+        &quot;⬆ Excel 파일 불러오기&quot;로 업로드하면 바로 프로젝트로 등록됩니다.
+        양식 안에 작성 예시(안내 시트 + 예시로 채워진 프로젝트 시트)가 들어 있으니 참고해서 실제 내용으로 바꿔주세요.
+      </p>
+      <div class="toolbar">
+        <button class="primary" id="downloadTemplateBtn">⬇ 빈 양식 다운로드 (Excel)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>☁ 실시간 공동편집 (공유 API 연동 - JSONBin)</h2>
+      <p class="hint">
+        jsonbin.io라는 무료 JSON 저장 서비스를 공유 저장소로 써서 여러 명이 같은 데이터를 보고 저장할 수 있게 해줍니다. 처음 한 번만 설정하면 됩니다 —
+        jsonbin.io에 무료 가입 후 API Keys 메뉴에서 발급받은 &quot;X-MASTER-KEY&quot;를 아래 API 키 칸에 붙여넣으세요.
+        데이터함(Bin)이 아직 없다면 ID 칸을 비워두고 &quot;새로 만들기&quot;를 누르면 자동으로 만들어집니다. 이미 다른 사람이 만든 데이터함이 있다면 그 ID를 붙여넣고 &quot;연결&quot;을 누르세요.
+        이후 &quot;🔗 공유 링크 복사&quot;로 만든 링크를 다른 사람에게 보내면, 그 링크를 여는 즉시 같은 데이터함에 자동으로 연결됩니다
+        (단, 이 HTML 파일 자체를 웹에 올려서 연 경우에만 그 링크를 다른 사람이 열 수 있어요 — 내 컴퓨터의 로컬 파일이면 나만 열 수 있는 경로입니다.
+        또한 공유 링크에는 API 키가 그대로 담기니, 이 앱 전용으로 새 jsonbin.io 계정을 만들어 쓰는 걸 권장합니다).
+        여러 명이 실시간으로 동시에 입력하는 것이 아니라, 각자 편집 후 &quot;저장&quot;을 누르면 서로의 최신 내용을 불러오는 방식입니다.
+        무료 요금제는 10,000회 요청이 한 번 제공되는 방식이라(월 충전 아님), 자동 확인 주기를 60초로 넉넉하게 잡아뒀고, 다 쓰지 않도록 작업이 끝나면 탭을 닫아두시는 게 좋습니다.
+      </p>
+      <div class="grid-2">
+        <label class="field">API 키 (X-Master-Key)
+          <input type="text" id="syncApiKeyInput" placeholder="jsonbin.io API Keys 페이지에서 발급받은 Master Key">
+        </label>
+        <label class="field">공유 데이터함 ID (Bin ID)
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="syncBinIdInput" placeholder="처음이면 비워두고 오른쪽 버튼을 누르세요" style="flex:1;">
+            <button id="syncCreateBinBtn">새로 만들기</button>
+          </div>
+        </label>
+      </div>
+      <div class="toolbar" style="margin-top:8px; flex-wrap:wrap;">
+        <button class="primary" id="syncConnectBtn">연결</button>
+        <button id="syncPullBtn">⬇ 지금 불러오기</button>
+        <button id="syncPushBtn">⬆ 지금 저장</button>
+        <button id="syncCopyLinkBtn">🔗 공유 링크 복사</button>
+      </div>
+      <div id="syncStatus" style="margin-top:8px; font-size:12.5px; color:var(--text-secondary);">연결되지 않음</div>
+      <div id="syncBanner" style="display:none; margin-top:8px; padding:8px 12px; border-radius:8px; background:var(--surface-page); border:1px solid var(--critical); font-size:12.5px; align-items:center; justify-content:space-between; gap:10px;">
+        <span style="color:var(--critical); font-weight:600;">다른 사람이 방금 저장한 새 내용이 있습니다.</span>
+        <button id="syncBannerPullBtn">지금 불러오기</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>전체 데이터 저장 / 불러오기 (Excel)</h2>
+      <p class="hint">
+        이 도구는 브라우저에 자동 저장하지 않습니다. 작업한 내용을 보존하려면 Excel 파일로 내보낸 뒤,
+        다음에 다시 열 때 그 파일을 불러오세요. 모든 프로젝트가 프로젝트별 시트로 담긴 하나의 .xlsx 파일입니다 —
+        메일이나 메신저로 그대로 첨부해서 보내실 수 있어요.
+      </p>
+      <div class="toolbar">
+        <button class="primary" id="exportExcelBtn">⬇ 전체 데이터 내보내기 (Excel)</button>
+        <button id="importExcelBtn">⬆ Excel 파일 불러오기</button>
+        <input type="file" id="importExcelInput" accept=".xlsx,.xls">
+        <span class="spacer"></span>
+        <button id="loadSampleBtn">📄 샘플 데이터 불러오기 (백야의 꽃길)</button>
+      </div>
+      <div class="assumption-box">
+        <strong>샘플 데이터 안내:</strong> 업로드해주신 시트의 &quot;26.05 백야의 꽃길&quot; 탭에 있는 실제 인원과 출근 기록(F 표시)을 불러온 예시입니다.
+        다만 급여는 이 도구의 통일된 규칙(직급별 행사일 일급 / 사전준비 시급 × 기준시간)으로 다시 계산되므로,
+        원본 시트에 수기로 입력된 공휴일·연장 수당 등과 최종 금액이 정확히 일치하지는 않을 수 있습니다.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>원본 스프레드시트에서 가져오기 (고급)</h2>
+      <p class="hint">
+        이 사이트의 형식이 아니라, 원래 쓰시던 근무표 파일(예: &quot;도서전&quot;, &quot;백야의 꽃길&quot; 같은 시트)을 그대로 업로드해서
+        근무일과 근태만 뽑아올 수 있어요. 파일을 올리고 시트를 고른 뒤, 미리보기를 보면서 이름·직급·근무일이 있는 열을 지정해주세요.
+      </p>
+      <div class="toolbar">
+        <button id="rawImportPickBtn">⬆ 원본 엑셀 파일 선택</button>
+        <input type="file" id="rawImportInput" accept=".xlsx,.xls">
+        <select class="event-select" id="rawSheetSelect" style="display:none;"></select>
+      </div>
+
+      <div id="rawPreviewWrap" style="display:none; margin-top:12px;">
+        <p class="hint" style="margin-bottom:6px;">
+          아래 표에서 열 문자(A, B, C…)와 행 번호를 확인한 뒤, 아래 입력칸에 그대로 적어주세요.
+        </p>
+        <p class="scroll-hint">← 표가 넓으면 좌우로 스크롤해서 나머지 열을 볼 수 있어요.</p>
+        <div class="table-scroll" style="max-height:280px; overflow-y:auto;">
+          <table class="data" id="rawPreviewTable"></table>
+        </div>
+      </div>
+
+      <div id="rawMappingForm" style="display:none; margin-top:16px;">
+        <div class="grid-2">
+          <label class="field">프로젝트 이름
+            <input type="text" id="rawEventName">
+          </label>
+          <label class="field">출근 표시 문자 (셀에 이 글자가 있으면 출근으로 인식)
+            <input type="text" id="rawMarker" value="F">
+          </label>
+        </div>
+        <div class="grid-2">
+          <label class="field">이름이 있는 열 (예: D)
+            <input type="text" id="rawNameCol" placeholder="D">
+          </label>
+          <label class="field">직급이 있는 열 (없으면 비워두세요)
+            <input type="text" id="rawRoleCol" placeholder="C">
+          </label>
+        </div>
+        <div class="grid-2">
+          <label class="field">인원 데이터 시작 행
+            <input type="number" id="rawDataStart" placeholder="예: 7">
+          </label>
+          <label class="field">인원 데이터 끝 행 (비워두면 이름이 끊길 때까지 자동 인식)
+            <input type="number" id="rawDataEnd" placeholder="선택 입력">
+          </label>
+        </div>
+
+        <h3 style="font-size:13px; margin:16px 0 6px;">근무일 구간</h3>
+        <p class="hint" style="margin-bottom:8px;">
+          날짜가 나열된 열 범위를 구간별로 추가하세요 (한 시트에 5월/6월처럼 여러 구간이 있어도 됩니다).
+          "일자가 적힌 행"은 시트에서 3, 4, 5…처럼 날짜 숫자가 적힌 행 번호예요. 범위 안에서 숫자가 아닌 열은 자동으로 건너뜁니다.
+        </p>
+        <p class="scroll-hint">← 표가 넓으면 좌우로 스크롤해서 나머지 항목을 볼 수 있어요.</p>
+        <div class="table-scroll">
+          <table class="data" id="rawBlocksTable">
+            <thead><tr><th>시작 열</th><th>끝 열</th><th>일자가 적힌 행</th><th>연도</th><th>월</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <button id="addRawBlockBtn" style="margin-top:8px;">+ 구간 추가</button>
+
+        <div class="assumption-box" style="margin-top:14px;">
+          날짜 유형(행사일/사전준비일)은 우선 실제 요일 기준(토·일=행사일, 그 외=사전준비일)으로 자동 설정됩니다.
+          가져온 뒤 &quot;② 근무일 설정&quot; 탭에서 프로젝트 특성에 맞게 개별 조정해주세요. 직급별 급여 기준도 &quot;① 직급별 급여기준&quot; 탭에서 확인/입력해야 급여가 정확히 계산됩니다.
+        </div>
+
+        <div class="toolbar" style="margin-top:8px;">
+          <button class="primary" id="rawImportApplyBtn">이 매핑으로 프로젝트 만들기</button>
+          <span id="rawImportStatus" style="color:var(--text-muted); font-size:12px;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>급여 결과 PDF로 저장</h2>
+      <p class="hint">
+        현재 선택된 프로젝트의 급여 요약과 인원별 상세표를 PDF 파일 하나로 내려받습니다. 인쇄하거나 그대로 공유하기 좋은 형태예요.
+      </p>
+      <div class="toolbar">
+        <button class="primary" id="exportPdfBtn">⬇ 급여 결과 PDF로 저장</button>
+        <span id="pdfStatus" style="color:var(--text-muted); font-size:12px;"></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer-note">
+    브라우저 저장(로컬 스토리지)을 사용하지 않는 순수 클라이언트 도구입니다 — 새로고침하면 초기화되니, 작업 후 &quot;데이터 저장/불러오기&quot; 탭에서 Excel로 내보내 두세요.
+  </div>
+</div>
+
+<div class="lookup-overlay" id="payLookupOverlay">
+  <div class="lookup-card">
+    <div class="lookup-title-bar">
+      <span>근무자 급여 조회</span>
+      <div class="lookup-title-actions">
+        <button id="payLookupPngBtn" title="이 카드를 PNG 이미지로 저장">PNG 저장</button>
+        <button id="payLookupJpgBtn" title="이 카드를 JPG 이미지로 저장">JPG 저장</button>
+        <button id="payLookupCloseBtn">✕ 닫기</button>
+      </div>
+    </div>
+    <div class="lookup-body">
+      <div class="lookup-name-row">
+        <span style="color:var(--text-muted); font-size:12px;">이름</span>
+        <span class="lk-name" id="lkName"></span>
+        <span class="lk-role" id="lkRole"></span>
+      </div>
+
+      <div class="lookup-section-title">■ 총 근무일수</div>
+      <table class="lookup">
+        <thead><tr><th>구분</th><th class="num">일수</th><th class="num">금액</th></tr></thead>
+        <tbody id="lkDaysBody"></tbody>
+      </table>
+
+      <div class="lookup-section-title">■ 추가 근무시간</div>
+      <table class="lookup">
+        <thead><tr><th>구분</th><th class="num">시간</th><th class="num">금액</th></tr></thead>
+        <tbody id="lkOtBody"></tbody>
+      </table>
+
+      <div class="lookup-final">
+        <span class="lk-final-label" id="lkFinalLabel">예상 지급액</span>
+        <span id="lkFinalAmount"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
