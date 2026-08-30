@@ -22,7 +22,7 @@ function blankEvent(name) {
     roles: defaultRoles(),
     dates: [],
     staff: [],
-    contractAmount: 0, // 클라이언트와 계약한 도급/계약 금액 — ⑤탭에서 입력, 인건비 마진율 계산에 쓰임
+    contractAmount: 0, // 클라이언트와 계약한 계약금액 — ⑤탭에서 입력, 인건비 마진율 계산에 쓰임
   };
 }
 
@@ -752,8 +752,8 @@ function renderResults(monthOverride) {
   const totalDays = rows.reduce((sum, r) => sum + r.calc.totalDays, 0);
   const avgPay = rows.length ? roundToNearest5(totalPayroll / rows.length) : 0;
 
-  // 인건비 마진율: 프로젝트 전체(월 필터와 무관하게) 도급/계약 금액 대비 인건비 총액.
-  // 특정 달만 보고 있어도 도급 금액은 프로젝트 하나에 한 개뿐이라, 항상 "프로젝트 전체 인건비"와
+  // 인건비 마진율: 프로젝트 전체(월 필터와 무관하게) 계약금액 대비 인건비 총액.
+  // 특정 달만 보고 있어도 계약금액은 프로젝트 하나에 한 개뿐이라, 항상 "프로젝트 전체 인건비"와
   // 비교한다 — 그렇지 않으면 한 달치 인건비만으로 마진율을 잘못 계산하게 된다.
   const fullTotalPayroll = ev.staff.reduce((sum, s) => sum + calcStaffPay(ev, s, null).total, 0);
   const contractAmount = ev.contractAmount || 0;
@@ -790,15 +790,15 @@ function renderResults(monthOverride) {
 
   html += `<div class="card">
     <h2>인건비 마진율</h2>
-    <p class="hint">클라이언트와 계약한 도급/계약 금액을 입력하면, 이 프로젝트 전체 인건비(월 필터와 무관하게 항상 전체 기준) 대비 마진을 자동으로 계산해요.</p>
-    <label class="field" style="max-width:280px;">도급/계약 금액(원)
+    <p class="hint">클라이언트와 계약한 계약금액을 입력하면, 이 프로젝트 전체 인건비(월 필터와 무관하게 항상 전체 기준) 대비 마진을 자동으로 계산해요.</p>
+    <label class="field" style="max-width:280px;">계약금액(원)
       <input type="number" id="contractAmountInput" class="num" value="${contractAmount}" placeholder="예: 10000000">
     </label>
     <div class="stat-row" style="margin-top:10px;">
-      <div class="stat-tile"><div class="label">도급/계약 금액</div><div class="value small">${money(contractAmount)}</div></div>
+      <div class="stat-tile"><div class="label">계약금액</div><div class="value small">${money(contractAmount)}</div></div>
       <div class="stat-tile"><div class="label">프로젝트 전체 인건비</div><div class="value small">${money(fullTotalPayroll)}</div></div>
       <div class="stat-tile"><div class="label">마진</div><div class="value small" id="marginAmountValue" style="${marginAmount < 0 ? "color:var(--critical);" : ""}">${money(marginAmount)}</div></div>
-      <div class="stat-tile"><div class="label">마진율</div><div class="value small" id="marginRateValue" style="${marginRate != null && marginRate < 0 ? "color:var(--critical);" : ""}">${marginRate != null ? marginRate.toFixed(1) + "%" : "도급 금액을 입력하세요"}</div></div>
+      <div class="stat-tile"><div class="label">마진율</div><div class="value small" id="marginRateValue" style="${marginRate != null && marginRate < 0 ? "color:var(--critical);" : ""}">${marginRate != null ? marginRate.toFixed(1) + "%" : "계약금액을 입력하세요"}</div></div>
     </div>
   </div>`;
 
@@ -871,7 +871,7 @@ function renderResults(monthOverride) {
         marginAmountEl.style.color = newMarginAmount < 0 ? "var(--critical)" : "";
       }
       if (marginRateEl) {
-        marginRateEl.textContent = newMarginRate != null ? newMarginRate.toFixed(1) + "%" : "도급 금액을 입력하세요";
+        marginRateEl.textContent = newMarginRate != null ? newMarginRate.toFixed(1) + "%" : "계약금액을 입력하세요";
         marginRateEl.style.color = (newMarginRate != null && newMarginRate < 0) ? "var(--critical)" : "";
       }
       scheduleAutoSave();
@@ -1054,9 +1054,9 @@ function buildEventSheetRows(ev) {
   rows.push(ROLE_HEADER);
   ev.roles.forEach(r => rows.push([r.name, r.dailyRate, r.eventStandardHours != null ? r.eventStandardHours : 8, r.hourlyRate, r.standardHours, r.holidayBonus, r.otRate]));
   rows.push([]); // blank separator row -> marks end of role table
-  // 도급/계약 금액(인건비 마진율 계산용) — 이 행이 없는 예전 파일을 불러와도 문제없도록,
+  // 계약금액(인건비 마진율 계산용) — 이 행이 없는 예전 파일을 불러와도 문제없도록,
   // 읽을 때는 이 라벨로 시작하는 행인지 확인하고 없으면 그냥 건너뛴다(하위 호환).
-  rows.push(["도급/계약 금액(원)", ev.contractAmount || 0]);
+  rows.push(["계약금액(원)", ev.contractAmount || 0]);
   rows.push([]); // blank separator row
 
   const months = monthsInEvent(ev);
@@ -1256,10 +1256,11 @@ function parseEventSheet(sheetName, rows) {
   }
   while (i < rows.length && (!rows[i] || !rows[i][0])) i++; // skip blank separator row(s) (first cell empty)
 
-  // 도급/계약 금액 행(있으면). 이 행이 없는 예전 파일이면 header1이 바로 나오므로 조건이
-  // 그냥 통과되어 기존과 동일하게 동작한다(하위 호환).
+  // 계약금액 행(있으면). 이 행이 없는 예전 파일이면 header1이 바로 나오므로 조건이
+  // 그냥 통과되어 기존과 동일하게 동작한다(하위 호환). "도급/계약 금액"은 이 기능을 처음
+  // 추가했을 때 잠깐 쓰였던 옛 라벨이라, 그 사이 내보낸 파일도 인식할 수 있도록 같이 확인한다.
   let contractAmount = 0;
-  if (rows[i] && String(rows[i][0] || "").indexOf("도급/계약 금액") === 0) {
+  if (rows[i] && (String(rows[i][0] || "").indexOf("계약금액") === 0 || String(rows[i][0] || "").indexOf("도급/계약 금액") === 0)) {
     contractAmount = Number(rows[i][1] || 0);
     i++;
     while (i < rows.length && (!rows[i] || !rows[i][0])) i++;
