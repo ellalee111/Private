@@ -1,3 +1,4 @@
+
 /* ============ Sample data (parsed from user's uploaded sheet) ============ */
 const SAMPLE_BAEKYA = {"dates": [{"month": 5, "day": 21, "dow": "목", "type": "prep"}, {"month": 5, "day": 22, "dow": "금", "type": "prep"}, {"month": 5, "day": 23, "dow": "토", "type": "event"}, {"month": 5, "day": 24, "dow": "일", "type": "event"}, {"month": 5, "day": 29, "dow": "금", "type": "prep"}, {"month": 5, "day": 30, "dow": "토", "type": "event"}, {"month": 5, "day": 31, "dow": "일", "type": "event"}, {"month": 6, "day": 5, "dow": "금", "type": "prep"}, {"month": 6, "day": 6, "dow": "토", "type": "event"}, {"month": 6, "day": 7, "dow": "일", "type": "event"}, {"month": 6, "day": 12, "dow": "금", "type": "prep"}, {"month": 6, "day": 13, "dow": "토", "type": "event"}, {"month": 6, "day": 14, "dow": "일", "type": "event"}, {"month": 6, "day": 19, "dow": "금", "type": "prep"}, {"month": 6, "day": 20, "dow": "토", "type": "event"}, {"month": 6, "day": 21, "dow": "일", "type": "event"}, {"month": 6, "day": 22, "dow": "월", "type": "event"}], "people": [{"no": 1, "name": "이주연", "role": "매니저", "note": "MANAGER", "attendance": [true, true, true, true, true, true, false, true, true, true, true, true, true, true, true, true, false]}, {"no": 2, "name": "류희정", "role": "부매니저", "note": "SUBMANAGER", "attendance": [true, false, true, true, false, false, true, false, true, true, false, false, false, false, false, false, false]}, {"no": 3, "name": "이용욱", "role": "부매니저", "note": "SUBMANAGER", "attendance": [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false]}, {"no": 4, "name": "김도희", "role": "알바", "note": "", "attendance": [false, false, false, false, false, true, true, false, true, true, false, false, false, false, false, false, false]}, {"no": 5, "name": "김유민", "role": "알바", "note": "", "attendance": [false, false, false, false, true, true, true, true, true, true, true, true, false, true, true, true, false]}, {"no": 6, "name": "김초림", "role": "알바", "note": "주말", "attendance": [false, false, true, true, false, false, false, false, true, true, false, false, true, false, true, true, false]}, {"no": 7, "name": "방승연", "role": "알바", "note": "주말", "attendance": [false, false, true, true, false, true, false, false, true, false, false, true, true, false, false, false, false]}, {"no": 8, "name": "방승주", "role": "알바", "note": "단기", "attendance": [false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false]}, {"no": 9, "name": "최유정", "role": "알바", "note": "", "attendance": [true, true, true, true, false, true, false, false, true, true, false, true, true, false, true, true, false]}, {"no": 10, "name": "최유진", "role": "알바", "note": "", "attendance": [true, true, true, true, false, true, true, false, true, true, false, true, true, false, false, false, false]}, {"no": 11, "name": "임승희", "role": "알바", "note": "", "attendance": [false, false, false, false, false, true, true, false, false, false, false, false, false, true, true, true, false]}, {"no": 12, "name": "윤이나", "role": "알바", "note": "금토일", "attendance": [false, false, false, false, true, true, true, true, true, true, true, true, true, false, false, false, false]}, {"no": 13, "name": "이아진", "role": "알바", "note": "언어능력자", "attendance": [false, false, false, false, true, false, true, true, true, true, false, true, true, true, true, true, false]}, {"no": 14, "name": "박지은", "role": "알바", "note": "", "attendance": [false, false, false, false, true, true, true, true, true, true, false, false, false, false, true, true, false]}, {"no": 15, "name": "정문경", "role": "알바", "note": "신규 / 언어능력자", "attendance": [true, true, false, true, false, true, true, true, true, true, true, true, true, true, true, true, false]}, {"no": 16, "name": "박채은", "role": "알바", "note": "단기", "attendance": [false, false, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false]}, {"no": 17, "name": "이은서", "role": "알바", "note": "단기", "attendance": [false, false, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false]}, {"no": 18, "name": "박지인", "role": "알바", "note": "신규 / 언어능력자", "attendance": [false, true, true, true, false, true, true, false, true, true, false, true, true, false, true, true, false]}, {"no": 19, "name": "성나현", "role": "알바", "note": "신규", "attendance": [false, false, true, true, false, true, true, false, true, true, false, true, true, true, true, true, false]}, {"no": 20, "name": "박진서", "role": "알바", "note": "", "attendance": [true, true, false, false, false, true, true, false, false, false, false, false, false, false, false, false, false]}, {"no": 21, "name": "김다은", "role": "알바", "note": "", "attendance": [false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}, {"no": 22, "name": "이자이", "role": "알바", "note": "", "attendance": [false, false, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false]}, {"no": 23, "name": "이여명", "role": "알바", "note": "", "attendance": [true, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false]}, {"no": 24, "name": "정진수", "role": "알바", "note": "", "attendance": [false, false, true, true, false, false, true, false, false, false, false, false, false, false, false, false, false]}, {"no": 25, "name": "안성용", "role": "알바", "note": "", "attendance": [false, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, false]}, {"no": 26, "name": "양연경", "role": "알바", "note": "", "attendance": [false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false]}, {"no": 27, "name": "강민", "role": "알바", "note": "", "attendance": [false, false, true, false, false, false, false, false, false, true, false, false, false, false, false, false, false]}]};
 
@@ -21,6 +22,7 @@ function blankEvent(name) {
     roles: defaultRoles(),
     dates: [],
     staff: [],
+    contractAmount: 0, // 클라이언트와 계약한 도급/계약 금액 — ⑤탭에서 입력, 인건비 마진율 계산에 쓰임
   };
 }
 
@@ -750,6 +752,14 @@ function renderResults(monthOverride) {
   const totalDays = rows.reduce((sum, r) => sum + r.calc.totalDays, 0);
   const avgPay = rows.length ? roundToNearest5(totalPayroll / rows.length) : 0;
 
+  // 인건비 마진율: 프로젝트 전체(월 필터와 무관하게) 도급/계약 금액 대비 인건비 총액.
+  // 특정 달만 보고 있어도 도급 금액은 프로젝트 하나에 한 개뿐이라, 항상 "프로젝트 전체 인건비"와
+  // 비교한다 — 그렇지 않으면 한 달치 인건비만으로 마진율을 잘못 계산하게 된다.
+  const fullTotalPayroll = ev.staff.reduce((sum, s) => sum + calcStaffPay(ev, s, null).total, 0);
+  const contractAmount = ev.contractAmount || 0;
+  const marginAmount = contractAmount - fullTotalPayroll;
+  const marginRate = contractAmount > 0 ? (marginAmount / contractAmount) * 100 : null;
+
   // by-role totals for chart, in role definition order (categorical hue order)
   const colors = ["--series-1","--series-2","--series-3","--series-4"];
   const byRole = ev.roles.map((role, i) => {
@@ -776,6 +786,20 @@ function renderResults(monthOverride) {
     <div class="stat-tile"><div class="label">${monthFilter ? monthLabel(monthFilter) + " 근무일수" : "총 근무일수"}</div><div class="value">${totalDays}일</div></div>
     <div class="stat-tile"><div class="label">${monthFilter ? monthLabel(monthFilter) + " 인건비" : "총 인건비"}</div><div class="value small">${money(totalPayroll)}</div></div>
     <div class="stat-tile"><div class="label">1인당 평균 지급액</div><div class="value small">${money(avgPay)}</div></div>
+  </div>`;
+
+  html += `<div class="card">
+    <h2>인건비 마진율</h2>
+    <p class="hint">클라이언트와 계약한 도급/계약 금액을 입력하면, 이 프로젝트 전체 인건비(월 필터와 무관하게 항상 전체 기준) 대비 마진을 자동으로 계산해요.</p>
+    <label class="field" style="max-width:280px;">도급/계약 금액(원)
+      <input type="number" id="contractAmountInput" class="num" value="${contractAmount}" placeholder="예: 10000000">
+    </label>
+    <div class="stat-row" style="margin-top:10px;">
+      <div class="stat-tile"><div class="label">도급/계약 금액</div><div class="value small">${money(contractAmount)}</div></div>
+      <div class="stat-tile"><div class="label">프로젝트 전체 인건비</div><div class="value small">${money(fullTotalPayroll)}</div></div>
+      <div class="stat-tile"><div class="label">마진</div><div class="value small" id="marginAmountValue" style="${marginAmount < 0 ? "color:var(--critical);" : ""}">${money(marginAmount)}</div></div>
+      <div class="stat-tile"><div class="label">마진율</div><div class="value small" id="marginRateValue" style="${marginRate != null && marginRate < 0 ? "color:var(--critical);" : ""}">${marginRate != null ? marginRate.toFixed(1) + "%" : "도급 금액을 입력하세요"}</div></div>
+    </div>
   </div>`;
 
   if (byRole.length > 0) {
@@ -831,6 +855,27 @@ function renderResults(monthOverride) {
   const monthSelect = document.getElementById("resultMonthSelect");
   if (monthSelect) {
     monthSelect.addEventListener("change", (e) => renderResults(e.target.value));
+  }
+  // 입력할 때마다 ⑤탭 전체를 다시 그리면 입력칸이 통째로 새로 생겨서 커서/포커스가
+  // 튀므로, 마진 관련 두 값만 직접 갱신한다(다른 input들과 같은 패턴).
+  const contractInput = document.getElementById("contractAmountInput");
+  if (contractInput) {
+    contractInput.addEventListener("input", () => {
+      ev.contractAmount = parseFloat(contractInput.value || 0) || 0;
+      const newMarginAmount = ev.contractAmount - fullTotalPayroll;
+      const newMarginRate = ev.contractAmount > 0 ? (newMarginAmount / ev.contractAmount) * 100 : null;
+      const marginAmountEl = document.getElementById("marginAmountValue");
+      const marginRateEl = document.getElementById("marginRateValue");
+      if (marginAmountEl) {
+        marginAmountEl.textContent = money(newMarginAmount);
+        marginAmountEl.style.color = newMarginAmount < 0 ? "var(--critical)" : "";
+      }
+      if (marginRateEl) {
+        marginRateEl.textContent = newMarginRate != null ? newMarginRate.toFixed(1) + "%" : "도급 금액을 입력하세요";
+        marginRateEl.style.color = (newMarginRate != null && newMarginRate < 0) ? "var(--critical)" : "";
+      }
+      scheduleAutoSave();
+    });
   }
   container.querySelectorAll("[data-lookup-staff]").forEach(btn => {
     btn.addEventListener("click", () => openPayLookup(btn.dataset.lookupStaff));
@@ -1009,6 +1054,10 @@ function buildEventSheetRows(ev) {
   rows.push(ROLE_HEADER);
   ev.roles.forEach(r => rows.push([r.name, r.dailyRate, r.eventStandardHours != null ? r.eventStandardHours : 8, r.hourlyRate, r.standardHours, r.holidayBonus, r.otRate]));
   rows.push([]); // blank separator row -> marks end of role table
+  // 도급/계약 금액(인건비 마진율 계산용) — 이 행이 없는 예전 파일을 불러와도 문제없도록,
+  // 읽을 때는 이 라벨로 시작하는 행인지 확인하고 없으면 그냥 건너뛴다(하위 호환).
+  rows.push(["도급/계약 금액(원)", ev.contractAmount || 0]);
+  rows.push([]); // blank separator row
 
   const months = monthsInEvent(ev);
   // OT hours get one column per month (an event can span several months, each with its own
@@ -1207,6 +1256,15 @@ function parseEventSheet(sheetName, rows) {
   }
   while (i < rows.length && (!rows[i] || !rows[i][0])) i++; // skip blank separator row(s) (first cell empty)
 
+  // 도급/계약 금액 행(있으면). 이 행이 없는 예전 파일이면 header1이 바로 나오므로 조건이
+  // 그냥 통과되어 기존과 동일하게 동작한다(하위 호환).
+  let contractAmount = 0;
+  if (rows[i] && String(rows[i][0] || "").indexOf("도급/계약 금액") === 0) {
+    contractAmount = Number(rows[i][1] || 0);
+    i++;
+    while (i < rows.length && (!rows[i] || !rows[i][0])) i++;
+  }
+
   const header1 = rows[i] || [];
   const header2 = rows[i+1] || [];
   i += 2;
@@ -1289,7 +1347,7 @@ function parseEventSheet(sheetName, rows) {
   }
 
   const dates = dateCols.map(dc => ({ date: dc.date, type: dc.type, holiday: dc.holiday }));
-  return { id: uid(), name: sheetName, memo: "", roles, dates, staff };
+  return { id: uid(), name: sheetName, memo: "", roles, dates, staff, contractAmount };
 }
 
 document.getElementById("importExcelInput").addEventListener("change", (e) => {
@@ -1522,6 +1580,7 @@ document.getElementById("rawImportApplyBtn").addEventListener("click", () => {
       roles: roles.length ? roles : [{ id: uid(), name: "일반", dailyRate: 0, eventStandardHours: 8, hourlyRate: 0, standardHours: 8, holidayBonus: 0, otRate: 0 }],
       dates: dateCols.map(dc => ({ date: dc.date, type: dc.type, holiday: false })),
       staff,
+      contractAmount: 0,
     };
     state.events.push(ev);
     state.activeEventId = ev.id;
