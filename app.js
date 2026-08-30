@@ -1653,6 +1653,44 @@ let syncBinId = "";
 let syncKnownUpdatedAt = "";
 let syncPollTimer = null;
 const SYNC_POLL_MS = 60000; // jsonbin.io 무료 요금제 요청 횟수(1회성 10,000회)를 아끼기 위해 60초 간격
+/* API 키 + 데이터함 ID는 (state와 마찬가지로) 이 브라우저의 localStorage에 저장해둔다.
+   그래야 "연결"을 누른 뒤 새로고침해도 매번 다시 입력/연결할 필요 없이 자동으로
+   재연결된다. 공유 링크(?syncKey=...&syncBin=...)로 들어온 경우가 우선이고, 그런
+   파라미터가 없을 때만 이 저장된 연결 정보를 쓴다. */
+const SYNC_CONN_KEY = "sweetspot_schedule_payroll_sync_conn_v1";
+function saveSyncConnection() {
+  try {
+    localStorage.setItem(SYNC_CONN_KEY, JSON.stringify({ apiKey: syncApiKey, binId: syncBinId }));
+  } catch (err) { /* 저장 실패해도 연결 자체는 계속 쓸 수 있으니 조용히 무시 */ }
+}
+function clearSyncConnection() {
+  try { localStorage.removeItem(SYNC_CONN_KEY); } catch (err) {}
+  if (syncPollTimer) clearInterval(syncPollTimer);
+  syncPollTimer = null;
+  syncApiKey = ""; syncBinId = ""; syncKnownUpdatedAt = "";
+  document.getElementById("syncApiKeyInput").value = "";
+  document.getElementById("syncBinIdInput").value = "";
+  showSyncBanner(false);
+  setSyncStatus("연결되지 않음");
+}
+/* 저장된 연결 정보가 있으면 자동으로 입력칸을 채우고 재연결한다. */
+function tryAutoReconnectSync() {
+  try {
+    const raw = localStorage.getItem(SYNC_CONN_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (!saved || !saved.apiKey || !saved.binId) return false;
+    document.getElementById("syncApiKeyInput").value = saved.apiKey;
+    document.getElementById("syncBinIdInput").value = saved.binId;
+    syncApiKey = saved.apiKey;
+    syncBinId = saved.binId;
+    setSyncStatus("이전에 연결했던 데이터함에 다시 연결하는 중...");
+    syncPull().then(startSyncPolling);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
 
 function setSyncStatus(text) {
   const el = document.getElementById("syncStatus");
@@ -1756,6 +1794,7 @@ async function syncConnect(silent) {
     syncKnownUpdatedAt = updatedAt || "";
     setSyncStatus(syncKnownUpdatedAt ? `연결됨 — 마지막 저장: ${fmtSyncTime(syncKnownUpdatedAt)}` : "연결됨 — 아직 저장된 데이터가 없습니다. \"지금 저장\"으로 현재 화면 내용을 올릴 수 있어요.");
     startSyncPolling();
+    saveSyncConnection();
   } catch (err) {
     setSyncStatus("연결 실패: " + syncFriendlyError(err));
   }
@@ -1775,6 +1814,7 @@ async function syncCreateBin() {
     syncBinId = id;
     syncKnownUpdatedAt = nowIso;
     startSyncPolling();
+    saveSyncConnection();
     setSyncStatus(`연결됨 — 마지막 저장: ${fmtSyncTime(syncKnownUpdatedAt)}`);
     alert("새 공유 데이터함이 만들어지고 현재 화면 내용이 저장되었습니다.\n\n데이터함 ID: " + id + "\n\n이 ID(또는 아래 \"공유 링크 복사\")를 다른 사람에게 알려주시면 함께 쓸 수 있어요.");
   } catch (err) {
@@ -1829,6 +1869,10 @@ document.getElementById("syncConnectBtn").addEventListener("click", () => syncCo
 document.getElementById("syncCreateBinBtn").addEventListener("click", () => syncCreateBin());
 document.getElementById("syncPullBtn").addEventListener("click", () => syncPull());
 document.getElementById("syncPushBtn").addEventListener("click", () => syncPush(false));
+const syncDisconnectBtnEl = document.getElementById("syncDisconnectBtn");
+if (syncDisconnectBtnEl) syncDisconnectBtnEl.addEventListener("click", () => {
+  if (confirm("이 데이터함과의 연결을 해제할까요? (저장된 데이터 자체는 jsonbin.io에 그대로 남아있고, 다시 API 키/ID를 입력하면 재연결할 수 있어요)")) clearSyncConnection();
+});
 document.getElementById("syncBannerPullBtn").addEventListener("click", () => syncPull());
 document.getElementById("syncCopyLinkBtn").addEventListener("click", () => {
   if (!syncApiKey || !syncBinId) { alert("먼저 API 키와 데이터함 ID를 연결하세요."); return; }
@@ -1845,12 +1889,14 @@ document.getElementById("syncCopyLinkBtn").addEventListener("click", () => {
   }
 });
 
-/* 공유 링크(?syncKey=...&syncBin=...)로 열었다면 자동으로 연결하고 최신 데이터를 불러온다. */
+/* 공유 링크(?syncKey=...&syncBin=...)로 열었다면 자동으로 연결하고 최신 데이터를 불러온다.
+   그런 링크가 아니면(=평소처럼 그냥 주소만으로 새로고침한 경우) 저장해둔 연결 정보로
+   자동 재연결을 시도한다(tryAutoReconnectSync). */
 function initSyncFromUrl() {
   const params = new URLSearchParams(location.search);
   const keyParam = params.get("syncKey");
   const binParam = params.get("syncBin");
-  if (!keyParam || !binParam) return;
+  if (!keyParam || !binParam) { tryAutoReconnectSync(); return; }
   const apiKey = decodeURIComponent(keyParam);
   const binId = decodeURIComponent(binParam);
   document.getElementById("syncApiKeyInput").value = apiKey;
@@ -1858,6 +1904,7 @@ function initSyncFromUrl() {
   syncApiKey = apiKey;
   syncBinId = binId;
   syncPull().then(startSyncPolling);
+  saveSyncConnection();
 }
 
 /* ============ auto-save hook ============
