@@ -36,7 +36,53 @@ function activeEvent() {
   return state.events.find(e => e.id === state.activeEventId) || state.events[0];
 }
 
-/* ============ persistence (export/import only, no localStorage) ============ */
+/* ============ persistence: auto-save to this browser's localStorage ============
+   이 앱은 여전히 서버가 없는 순수 클라이언트 도구지만, "새로고침하면 다 날아간다"는
+   불편을 없애기 위해 상태 전체(state)를 이 브라우저의 localStorage에 자동으로
+   저장/복원한다. 어디까지나 "이 브라우저 + 이 기기"에만 남는 저장이라, 다른 사람과
+   공유하거나 다른 기기로 옮기려면 기존처럼 Excel 내보내기/불러오기나
+   "실시간 공동편집(JSONBin)" 기능을 그대로 써야 한다. */
+const AUTOSAVE_KEY = "sweetspot_schedule_payroll_state_v1";
+let autoSaveTimer = null;
+function setAutoSaveStatus(text) {
+  const el = document.getElementById("autoSaveStatus");
+  if (el) el.textContent = text;
+}
+function saveStateToLocalStorage() {
+  try {
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(state));
+    const now = new Date().toLocaleTimeString("ko-KR", { hour12: false });
+    setAutoSaveStatus("· 자동 저장됨 (" + now + ")");
+  } catch (err) {
+    setAutoSaveStatus("· 자동 저장 실패 — 이 브라우저의 저장공간을 확인해주세요 (" + err.message + ")");
+  }
+}
+function scheduleAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(saveStateToLocalStorage, 400);
+}
+/* 페이지를 열 때 이전에 자동 저장된 내용이 있으면 그걸로 복원한다. 저장된 게 없거나
+   형태가 이상하면(옛 버전, 손상 등) 조용히 무시하고 위에서 만든 기본 상태를 그대로 쓴다. */
+function loadStateFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    if (!raw) return false;
+    const loaded = JSON.parse(raw);
+    if (!loaded || !Array.isArray(loaded.events) || loaded.events.length === 0) return false;
+    state = loaded;
+    if (!state.activeEventId || !state.events.some(e => e.id === state.activeEventId)) {
+      state.activeEventId = state.events[0].id;
+    }
+    setAutoSaveStatus("· 이전에 저장된 내용을 불러왔습니다");
+    return true;
+  } catch (err) {
+    console.warn("자동 저장된 데이터를 불러오지 못했습니다:", err);
+    return false;
+  }
+}
+loadStateFromLocalStorage();
+
+/* ============ persistence: manual export/import (Excel / cloud sync) ============ */
 function downloadFile(filename, content, mime) {
   const blob = new Blob([content], { type: mime || "application/octet-stream" });
   const url = URL.createObjectURL(blob);
@@ -1813,6 +1859,25 @@ function initSyncFromUrl() {
   syncBinId = binId;
   syncPull().then(startSyncPolling);
 }
+
+/* ============ auto-save hook ============
+   위쪽 render* 함수들은 사용자가 뭔가 바꿀 때마다(스태프 추가, 출석 칠하기, 금액 수정 등)
+   호출되므로, 여기서 한 번만 감싸두면 renderAll()을 거치든 개별 render*()만 호출되는
+   경로(드래그로 출석 칠하기 등)든 빠짐없이 자동 저장이 걸린다. */
+function withAutoSave(fn) {
+  return function (...args) {
+    const result = fn.apply(this, args);
+    scheduleAutoSave();
+    return result;
+  };
+}
+renderEventSelect = withAutoSave(renderEventSelect);
+renderRolesTable = withAutoSave(renderRolesTable);
+renderStaffRoleOptions = withAutoSave(renderStaffRoleOptions);
+renderDatesTable = withAutoSave(renderDatesTable);
+renderAttTable = withAutoSave(renderAttTable);
+renderOtDetailTab = withAutoSave(renderOtDetailTab);
+renderResults = withAutoSave(renderResults);
 
 /* ============ master render ============ */
 function renderAll() {
