@@ -1372,10 +1372,26 @@ document.getElementById("importExcelInput").addEventListener("change", (e) => {
         }
       });
       if (importedEvents.length === 0) throw new Error("이 파일에서 프로젝트 데이터를 찾지 못했습니다. 이 도구에서 내보낸 Excel 파일인지 확인해주세요.");
-      state.events = importedEvents;
+      // 업로드는 기존 프로젝트를 지우지 않고 이름(시트명)이 같은 프로젝트만 덮어쓰고,
+      // 새로운 이름은 목록 끝에 추가합니다.
+      let addedCount = 0, updatedCount = 0;
+      importedEvents.forEach(ev => {
+        const idx = state.events.findIndex(e => e.name === ev.name);
+        if (idx === -1) {
+          state.events.push(ev);
+          addedCount++;
+        } else {
+          ev.id = state.events[idx].id; // 기존 id를 유지해 activeEventId 등 참조가 깨지지 않도록
+          state.events[idx] = ev;
+          updatedCount++;
+        }
+      });
       state.activeEventId = importedEvents[0].id;
       renderAll();
-      alert(`${importedEvents.length}개 프로젝트를 불러왔습니다.`);
+      const parts = [];
+      if (addedCount) parts.push(`${addedCount}개 프로젝트 추가`);
+      if (updatedCount) parts.push(`${updatedCount}개 프로젝트 업데이트(동일 이름 시트)`);
+      alert(`${parts.join(", ")} 완료됐습니다. (기존 다른 프로젝트는 그대로 남아있습니다)`);
     } catch (err) {
       alert("파일을 읽는 중 문제가 발생했습니다: " + err.message);
     }
